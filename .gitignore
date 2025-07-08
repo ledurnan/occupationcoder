@@ -16,3 +16,6 @@ Outputs/
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
+
+# Virtual environment
+venv/
