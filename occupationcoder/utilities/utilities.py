@@ -129,10 +129,13 @@ def replace_punctuation(s):
     return s
 
 
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 class MLStripper(HTMLParser):
     def __init__(self):
+        super().__init__()
         self.reset()
+        self.strict = False
+        self.convert_charrefs = True
         self.fed = []
     def handle_data(self, d):
         self.fed.append(d)
@@ -176,7 +179,7 @@ def clean_title(dataframe_row):
     4              care assistant worker
     dtype: object
     """
-    lower = strip_tags(dataframe_row['job_title']).lower()
+    lower = strip_tags(dataframe_row).lower()
     lemm = lemmatise(lower.split())
     exp = lookup_replacement(lemm, expand_dict)
     known = replace_unknown(' '.join(exp)).strip()
@@ -195,7 +198,7 @@ def clean_desc(dataframe_row):
     Returns a string.
 
     """
-    lower = strip_tags(dataframe_row['job_description']).lower()
+    lower = strip_tags(dataframe_row).lower()
     lemm = lemmatise(lower.split())
     exp = lookup_replacement(lemm, expand_dict)
     nopunct = replace_punctuation(' '.join(exp))
@@ -232,7 +235,7 @@ def clean_sector(dataframe_row):
     98                   training
     dtype: object
     """
-    lower = replace_punctuation(dataframe_row['job_sector'].lower())
+    lower = replace_punctuation(dataframe_row.lower())
     replaced = lower.replace('other', ' ')
     exp = lookup_replacement(replaced.split(), expand_dict)
     nospace = re.sub(' +',' ',' '.join(exp))
@@ -295,6 +298,8 @@ def get_best_score_top5_2(dataframe_row):
     >>> get_best_score_top5_2('community nurse')
     ['331', '612', '323', '614', '223']
     """
+    if pd.isna(dataframe_row) or dataframe_row is None or not isinstance(dataframe_row, str) or not dataframe_row.strip():
+        return []
     textfortoken= mg_buckets.Titles_nospace
     tfidf = TfidfVectorizer(tokenizer=tokenize,
                                 stop_words='english',
@@ -385,20 +390,25 @@ def return_best_match_2(dataframe_row):
     dtype: object
     """
     codes = dataframe_row['top5']
+    if not codes:
+        return ('NA', ('', 0, 0))
     index = codes.index
     options ={}
     items = options.items
+    final_code = ('NA', ('', 0, 0))
     for c in codes:
         if dataframe_row['title_nospace'] != '':
-            good_opt = extract(str(dataframe_row['title_nospace']), titles_mg[c])
-            if good_opt[1] == 0:
-                options[c] = ('None', '0')
-            else:
+            good_opt = extract(str(dataframe_row['title_nospace']), titles_mg.get(c, []))
+            if good_opt and good_opt[1] > 0:
                 options[c]=(good_opt[0], good_opt[1], index(c))
+            else:
+                options[c] = ('None', 0, index(c))
             final_code = max(items(), key = lambda x: getKey(x[1]))
         else:
-            final_code = (codes[4], ('None'))
+            final_code = (codes[4], ('None', 0, 4))
+            break
     return final_code
+
 
 def ascii_convert(cols,dfIn):
     """

@@ -56,24 +56,16 @@ class Coder:
                     ("Please ensure a "+col+" column exists in your csv file"))
         # Ensure it's all in unicode
         for col in self.colsToProcess:
-            df_all[col] = df_all[col].apply(lambda x: unicode(str(x),'utf-8','ignore'))
+            df_all[col] = df_all[col].apply(lambda x: str(x))
         df = df_all[self.colsToProcess]
 
         ## Generate dask dataframe from pandas dataframe to enable multiprocessing
         ds = dd.from_pandas(df, npartitions = 2)
 
         ## Clean job title, job sector and description
-        datatype = ds[self.colsToProcess[0]].dtype
-        res1 = ds.apply(utils.clean_title, axis = 1,\
-        meta = ('x', datatype))
-        res2 = ds.apply(utils.clean_desc, axis = 1,\
-        meta = ('x', datatype))
-        res3 = ds.apply(utils.clean_sector, axis = 1,\
-        meta = ('x', datatype))
-
-        df['title_nospace'] =  res1.compute(get=dask.multiprocessing.get)
-        df['desc_nospace'] = res2.compute(get=dask.multiprocessing.get)
-        df['job_sector_nospace'] = res3.compute(get=dask.multiprocessing.get)
+        df['title_nospace'] = df['job_title'].astype(str).apply(utils.clean_title)
+        df['desc_nospace'] = df['job_description'].astype(str).apply(utils.clean_desc)
+        df['job_sector_nospace'] = df['job_sector'].astype(str).apply(utils.clean_sector)
 
         ## Combine cleaned job title, sector and description
         df['title_and_desc'] = df[['title_nospace', 'job_sector_nospace','desc_nospace']]\
@@ -98,7 +90,7 @@ class Coder:
         ## Run function to get best fuzzy match
         res = ds.apply(utils.return_best_match_2, axis = 1,
                        meta = ('x', ds['title_nospace'].dtype))
-        x = res.compute(get=dask.multiprocessing.get)
+        x = res.compute(scheduler='processes')
 
         ## Write result back to pandas dataframe
         not_matched.loc[:,'SOC_code']=x.apply(lambda x: x[0])
