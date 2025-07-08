@@ -1,5 +1,13 @@
-dask==0.13.0
-pandas==0.20.2
-nltk>=3.4.5
-fuzzywuzzy==0.15.1
-scikit-learn==0.19.1
+# Core dependencies for occupation coding
+pandas>=2.2.0
+dask>=2025.5.0
+scikit-learn>=1.7.0
+nltk>=3.9.0
+fuzzywuzzy>=0.18.0
+
+# Supporting libraries
+numpy>=2.3.0
+pyarrow>=20.0.0
+
+# Development and testing
+pytest>=8.4.0
