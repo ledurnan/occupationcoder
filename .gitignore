@@ -19,3 +19,10 @@ Outputs/
 
 # Virtual environment
 venv/
+
+# Performance benchmark outputs
+benchmark_results/
+*.benchmark
+
+# pytest cache
+.pytest_cache/
